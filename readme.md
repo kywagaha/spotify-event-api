@@ -35,11 +35,15 @@ spotify.event.on("newSong", (song) => {
 
 ## API
 
-### Initialize
+### Initialize/Stop
 
 #### `start(access_token)`
 
 Start the event listeners with your Spotify access token.
+
+#### `stop()`
+
+Stop the event listeners.
 
 ### Events
 
