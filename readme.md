@@ -39,7 +39,7 @@ spotify.event.on("newSong", (song) => {
 
 #### `start(access_token)`
 
-Start the event listeners with your Spotify access token.
+Start the event listeners with your Spotify access token. This function can only be ran once or else it will throw an error. We will add an option later to let you run this more than once if you need to.
 
 #### `stop()`
 

@@ -16,17 +16,22 @@ interface Track {
   art: string;
 }
 
-let stopLoops = false;
+let running = false;
 
 /**
  * Start the event listeners.
  * @param access_token Spotify access token
  */
 export function start(access_token: string) {
-  if (!access_token) {
-    console.error("no access token");
+  if (!running) {
+    if (!access_token) {
+      console.error("no access token");
+    } else {
+      checkSong(access_token);
+      running = true;
+    }
   } else {
-    checkSong(access_token);
+    console.error("already running!");
   }
 }
 
