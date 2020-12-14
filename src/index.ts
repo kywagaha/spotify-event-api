@@ -2,7 +2,12 @@ import axios from "axios";
 import { EventEmitter } from "events";
 
 class MyEmitter extends EventEmitter {}
-export const emitter = new MyEmitter();
+
+/**
+ * Subscribe to events.
+ * `event.on("newSong", callback)`
+ */
+export const event = new MyEmitter();
 
 interface Track {
   uri: string;
@@ -11,6 +16,10 @@ interface Track {
   art: string;
 }
 
+/**
+ * Start the event listeners.
+ * @param access_token Spotify access token
+ */
 export function start(access_token: string) {
   if (!access_token) {
     console.error("no access token");
@@ -29,7 +38,7 @@ function checkSong(access_token: string) {
         artists: response.data.item.artists,
         art: response.data.item.album.images[0].url,
       };
-      emitter.emit("newSong", currentSong);
+      event.emit("newSong", currentSong);
     });
     setInterval(() => {
       getTrack(access_token).then((response) => {
@@ -41,7 +50,7 @@ function checkSong(access_token: string) {
         };
 
         if (thisSong.uri != currentSong?.uri) {
-          emitter.emit("newSong", thisSong);
+          event.emit("newSong", thisSong);
         }
 
         currentSong = {

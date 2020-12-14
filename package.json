@@ -1,6 +1,6 @@
 {
-  "name": "spotify-event-api",
-  "version": "0.1.0",
+  "name": "@gabe-and-kyle/spotify-event-api",
+  "version": "0.1.1",
   "main": "lib/index.js",
   "types": "lib",
   "scripts": {
@@ -29,6 +29,7 @@
   },
   "homepage": "https://github.com/Gabe-and-Kyle/spotify-now-playing#readme",
   "keywords": [
-    "spotify"
+    "spotify",
+    "spotify-web-api"
   ]
 }
