@@ -35,7 +35,7 @@ spotify.event.on("newSong", (song) => {
 
 ## API
 
-### Initialize/Stop
+### Initialize
 
 #### `start(access_token)`
 
