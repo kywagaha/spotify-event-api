@@ -16,6 +16,8 @@ interface Track {
   art: string;
 }
 
+let stopLoops = false;
+
 /**
  * Start the event listeners.
  * @param access_token Spotify access token
@@ -26,6 +28,10 @@ export function start(access_token: string) {
   } else {
     checkSong(access_token);
   }
+}
+
+export function stop() {
+  stopLoops = true;
 }
 
 function checkSong(access_token: string) {
@@ -40,7 +46,7 @@ function checkSong(access_token: string) {
       };
       event.emit("newSong", currentSong);
     });
-    setInterval(() => {
+    const looper = setInterval(() => {
       getTrack(access_token).then((response) => {
         let thisSong: Track = {
           uri: response.data.item.uri,
@@ -60,7 +66,10 @@ function checkSong(access_token: string) {
           art: thisSong.art,
         };
       });
-    }, 5000);
+      if (stopLoops == true) {
+        clearInterval(looper);
+      }
+    }, 1000);
   } catch (e) {
     console.error(e);
   }
