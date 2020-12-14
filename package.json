@@ -1,10 +1,11 @@
 {
   "name": "@gabe-and-kyle/spotify-event-api",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "main": "lib/index.js",
   "types": "lib",
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "dev": "tsc -p . --watch"
   },
   "author": "Kyle Awayan and Gabe Haarberg",
   "license": "ISC",
