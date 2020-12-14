@@ -16,6 +16,44 @@ export function start(access_token: string) {
 }
 
 function checkSong(access_token: string) {
+  let currentSong: Track;
+  try {
+    getTrack(access_token).then((response) => {
+      currentSong = {
+        uri: response.data.item.uri,
+        name: response.data.item.name,
+        artists: response.data.item.artists,
+        art: response.data.item.album.images[0].url,
+      };
+      emitter.emit("newSong", currentSong);
+    });
+    setInterval(() => {
+      getTrack(access_token).then((response) => {
+        let thisSong: Track = {
+          uri: response.data.item.uri,
+          name: response.data.item.name,
+          artists: response.data.item.artists,
+          art: response.data.item.album.images[0].url,
+        };
+
+        if (thisSong.uri != currentSong?.uri) {
+          emitter.emit("newSong", thisSong);
+        }
+
+        currentSong = {
+          uri: thisSong.uri,
+          name: thisSong.name,
+          artists: thisSong.artists,
+          art: thisSong.art,
+        };
+      });
+    }, 5000);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function getTrack(access_token: string) {
   const config = {
     headers: {
       Accept: "application/json",
@@ -24,31 +62,8 @@ function checkSong(access_token: string) {
     },
   };
 
-  try {
-    let currentSong: Track;
-    setInterval(() => {
-      axios
-        .get("https://api.spotify.com/v1/me/player/currently-playing", config)
-        .then((response) => {
-          let thisSong: Track = {
-            uri: response.data.item.uri,
-            name: response.data.item.name,
-            artists: response.data.item.artists,
-            art: response.data.item.album.images[0].url,
-          };
-
-          if (thisSong.uri != currentSong?.uri) {
-            emitter.emit("newSong", thisSong);
-          }
-          currentSong = {
-            uri: thisSong.uri,
-            name: thisSong.name,
-            artists: thisSong.artists,
-            art: thisSong.art,
-          };
-        });
-    }, 5000);
-  } catch (e) {
-    console.error(e);
-  }
+  return axios.get(
+    "https://api.spotify.com/v1/me/player/currently-playing",
+    config
+  );
 }
