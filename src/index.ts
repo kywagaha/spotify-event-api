@@ -30,6 +30,9 @@ export function start(access_token: string) {
   }
 }
 
+/**
+ * Stop the event listeners.
+ */
 export function stop() {
   stopLoops = true;
 }
