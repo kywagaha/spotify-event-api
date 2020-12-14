@@ -1,12 +1,12 @@
 {
   "name": "spotify-now-playing",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib",
   "scripts": {
     "build": "tsc -p ."
   },
-  "author": "",
+  "author": "Kyle Awayan and Gabe Haarberg",
   "license": "ISC",
   "devDependencies": {
     "@types/events": "^3.0.0",
@@ -19,5 +19,16 @@
     "axios": "^0.21.0",
     "events": "^3.2.0"
   },
-  "description": ""
+  "description": "Event-based Spotify API wrapper",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gabe-and-Kyle/spotify-now-playing.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Gabe-and-Kyle/spotify-now-playing/issues"
+  },
+  "homepage": "https://github.com/Gabe-and-Kyle/spotify-now-playing#readme",
+  "keywords": [
+    "spotify"
+  ]
 }

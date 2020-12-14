@@ -12,7 +12,11 @@ interface Track {
 }
 
 export function start(access_token: string) {
-  checkSong(access_token);
+  if (!access_token) {
+    console.error("no access token");
+  } else {
+    checkSong(access_token);
+  }
 }
 
 function checkSong(access_token: string) {
