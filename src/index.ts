@@ -9,12 +9,12 @@ class MyEmitter extends EventEmitter {}
  */
 export const event = new MyEmitter();
 
-interface Track {
-  uri: string;
-  name: string;
-  artists: string[];
-  art: string;
+interface Item {
+  songURI: string;
+  artists: Object;
+  albumURI: string;
 }
+
 
 /**
  * Start the event listeners.
@@ -24,49 +24,48 @@ export function start(access_token: string) {
   if (!access_token) {
     console.error("no access token");
   } else {
-    checkSong(access_token);
+
   }
 }
 
-function checkSong(access_token: string) {
-  let currentSong: Track;
-  try {
-    getTrack(access_token).then((response) => {
-      currentSong = {
-        uri: response.data.item.uri,
-        name: response.data.item.name,
-        artists: response.data.item.artists,
-        art: response.data.item.album.images[0].url,
-      };
-      event.emit("newSong", currentSong);
-    });
-    setInterval(() => {
-      getTrack(access_token).then((response) => {
-        let thisSong: Track = {
-          uri: response.data.item.uri,
-          name: response.data.item.name,
-          artists: response.data.item.artists,
-          art: response.data.item.album.images[0].url,
-        };
+export class Player {
+  timer: Object = setInterval(()=>{});
+  access_token: string;
 
-        if (thisSong.uri != currentSong?.uri) {
-          event.emit("newSong", thisSong);
-        }
+  
+  constructor() {
+    this.access_token = '';
+  }
 
-        currentSong = {
-          uri: thisSong.uri,
-          name: thisSong.name,
-          artists: thisSong.artists,
-          art: thisSong.art,
-        };
-      });
-    }, 5000);
-  } catch (e) {
-    console.error(e);
+  
+
+  /**
+   * Spotify API token with scopes for /player
+   * @param token Spotify API Token
+   */
+  setAccessToken(token: string) {
+    this.access_token = token;
+  }
+
+  /**
+   * Starts timer, emits song, artist, and album changes
+   * @param number Time to refresh in ms. Default 1000ms
+   */
+  checkRefresh(delay: number = 1000) {
+    this.timer = setInterval(() => {
+      getPlayer(this.access_token).then((response) => {
+        event.emit("refresh", response);
+      })
+    }, delay);    
+  }
+
+  cancelRefresh() {
+    clearInterval(this.timer);
   }
 }
 
-function getTrack(access_token: string) {
+
+function getPlayer(access_token: string) {
   const config = {
     headers: {
       Accept: "application/json",
@@ -76,7 +75,7 @@ function getTrack(access_token: string) {
   };
 
   return axios.get(
-    "https://api.spotify.com/v1/me/player/currently-playing",
+    "https://api.spotify.com/v1/me/player/",
     config
   );
 }
