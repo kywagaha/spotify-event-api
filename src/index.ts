@@ -35,6 +35,13 @@ export function start(access_token: string) {
   }
 }
 
+/**
+ * Stop the event listeners.
+ */
+export function stop() {
+  stopLoops = true;
+}
+
 function checkSong(access_token: string) {
   let currentSong: Track;
   try {
@@ -47,7 +54,7 @@ function checkSong(access_token: string) {
       };
       event.emit("newSong", currentSong);
     });
-    setInterval(() => {
+    const looper = setInterval(() => {
       getTrack(access_token).then((response) => {
         let thisSong: Track = {
           uri: response.data.item.uri,
@@ -67,7 +74,10 @@ function checkSong(access_token: string) {
           art: thisSong.art,
         };
       });
-    }, 5000);
+      if (stopLoops == true) {
+        clearInterval(looper);
+      }
+    }, 1000);
   } catch (e) {
     console.error(e);
   }

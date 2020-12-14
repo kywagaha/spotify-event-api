@@ -2,8 +2,12 @@
 
 Event-based Spotify API wrapper. Work in progess.
 
+```
+npm i @kywagaha/spotify-event-api
+```
+
 ```JS
-const spotify = require("@gabe-and-kyle/spotify-event-api");
+const spotify = require("@kywagaha/spotify-event-api");
 
 spotify.start(access_token)
 
@@ -31,11 +35,15 @@ spotify.event.on("newSong", (song) => {
 
 ## API
 
-### Initialize
+### Initialize/Stop
 
 #### `start(access_token)`
 
 Start the event listeners with your Spotify access token. This function can only be ran once or else it will throw an error. We will add an option later to let you run this more than once if you need to.
+
+#### `stop()`
+
+Stop the event listeners.
 
 ### Events
 
