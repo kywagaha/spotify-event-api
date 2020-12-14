@@ -2,6 +2,10 @@
 
 Event-based Spotify API wrapper. Work in progess.
 
+```
+npm i @gabe-and-kyle/spotify-event-api
+```
+
 ```JS
 const spotify = require("@gabe-and-kyle/spotify-event-api");
 
