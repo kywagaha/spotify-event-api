@@ -1,5 +1,5 @@
 {
-  "name": "spotify-now-playing",
+  "name": "spotify-event-api",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib",
