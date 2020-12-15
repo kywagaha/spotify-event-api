@@ -4,7 +4,8 @@
   "main": "lib/index.js",
   "types": "lib",
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "dev": "tsc -p . --watch"
   },
   "author": "Kyle Awayan and Gabe Haarberg",
   "license": "ISC",
@@ -16,8 +17,10 @@
     "lib": "lib"
   },
   "dependencies": {
+    "@types/node": "^14.14.13",
     "axios": "^0.21.0",
-    "events": "^3.2.0"
+    "events": "^3.2.0",
+    "querystring": "^0.2.0"
   },
   "description": "Event-based Spotify API wrapper",
   "repository": {
