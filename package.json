@@ -25,12 +25,12 @@
   "description": "Event-based Spotify API wrapper",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Gabe-and-Kyle/spotify-now-playing.git"
+    "url": "git+https://github.com/kywagaha/spotify-event-api.git"
   },
   "bugs": {
-    "url": "https://github.com/Gabe-and-Kyle/spotify-now-playing/issues"
+    "url": "https://github.com/kywagaha/spotify-event-api/issues"
   },
-  "homepage": "https://github.com/Gabe-and-Kyle/spotify-now-playing#readme",
+  "homepage": "https://github.com/kywagaha/spotify-event-api#readme",
   "keywords": [
     "spotify",
     "spotify-web-api"
