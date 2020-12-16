@@ -68,7 +68,6 @@ export class Player {
   }
 
   async _get(path: string, query?: any) {
-    console.log('get')
     const config = {
       headers: {
         Accept: "application/json",
@@ -86,7 +85,6 @@ export class Player {
   }
 
   async _put(path: string, data: any) {
-    console.log('put')
     const config = {
       headers: {
         Accept: "application/json",
