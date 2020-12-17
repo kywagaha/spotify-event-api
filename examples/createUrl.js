@@ -1,28 +1,27 @@
-var spotifyEventApi = require('../lib/index.js')
+var spotifyEventApi = require('@kywagaha/spotify-event-api')
 var express = require('express');
 var app = express();
 
 const port = 4444;
 
 var server = app.listen(port)
-console.log('listening on port 4444')
+console.log(`listening on port ${port}`)
 
 var sPlay = new spotifyEventApi.Player({
-    client_id: 'a9ce5b430aca4e87ae43c8e4c243013e',
+    client_id: 'CLIENT_ID',
     redirect_uri: `http://localhost:${port}/callback`,
-    port: port,
-    scopes: ["user-read-playback-state"]
+    scopes: [
+        "user-read-playback-state",
+        "user-modify-playback-state",
+        "playlist-read-private"
+    ]
 })
 
 app.get('/callback', (req, res) => {
     server.close()
     var code = req.query.code;
     console.log(code);
-    sPlay.getTokensFromCode(code)
-    .then((res) => {
-        sPlay.begin()
-        main()
-    })
+    sPlay.getTokensFromCode(code, main)
 
     res.send('<h1>You may close this window</h1>')
 });

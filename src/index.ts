@@ -11,13 +11,13 @@ class MyEmitter extends EventEmitter {}
  * Subscribe to events.
  * `event.on("newSong", callback)`
  */
-export const event = new MyEmitter()
 
-interface ApiData {
+interface Credentials {
   client_id: string
   redirect_uri: string
-  port: number
   scopes: string[]
+  access_token: string
+  refresh_token: string
 }
 
 interface Track {
@@ -30,18 +30,22 @@ interface Track {
   repeat_state: string
   volume: number
   type: string
+  context: Object
 }
 
 export class Player {
+  event = new MyEmitter()
   timer: any
-  access_token: string = ''
-  refresh_token: string = ''
   codeVerifier: string
   codeState: string
   codeChallenge: string
-  
-  credentials: ApiData
-  event = event
+  credentials: Credentials = {
+    client_id: '',
+    redirect_uri: '',
+    scopes: [],
+    access_token: '',
+    refresh_token: '',
+  }
   songHolder: Track = {
     uri: '',
     artists: [],
@@ -51,15 +55,19 @@ export class Player {
     shuffle_state: false,
     repeat_state: "off",
     volume: 0,
-    type: "track"
+    type: "track",
+    context: {}
   }
   
-  constructor(params: ApiData) {
-    this.credentials = {
-      client_id: params?.client_id,
-      redirect_uri: params?.redirect_uri,
-      port: params?.port,
-      scopes: params?.scopes
+  /**
+   * 
+   * @param params Optional object. Requires 'client_id', 'redirect_uri'
+   */
+  constructor(params?: any) {
+    if (params) {
+      this.credentials.client_id = params.client_id,
+      this.credentials.redirect_uri = params.redirect_uri,
+      this.credentials.scopes = params.scopes
     }
     
     this.codeVerifier = base64URLEncode(crypto.randomBytes(32))
@@ -72,87 +80,54 @@ export class Player {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.access_token}` 
+        Authorization: `Bearer ${this.getAccessToken()}` 
       }
     }
     let url = API_URL + path
     if (query)
     url += qs.stringify(query)
     return await axios.get(url, config)
-    .catch(error => {
-      this._catch_err(error.response)
-    })
   }
 
-  async _put(path: string, data: any) {
+  async _put(path: string, data?: any) {
     const config = {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.access_token}` 
+        Authorization: `Bearer ${this.getAccessToken()}` 
       }
     }
     let url = API_URL + path
     return await axios.put(url, data, config)
-    .catch(error => {
-      this._catch_err(error.response)
-    })
   }
   
-  async _post(path: string, data: any) {
+  async _post(path: string, data?: any) {
     const config = {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.access_token}` 
+        Authorization: `Bearer ${this.getAccessToken()}` 
       }
     }
     let url = API_URL + path
-    return await axios.post(url, data, config)
+    return await axios.post(url, qs.stringify(data), config)    
   }
 
-  _catch_err(error: any) {
-    event.emit('error', error)
-    if (error.response.status == 401) {
-      clearInterval()
-      console.error('Bad Api Token')
-    } else if (error.response.status == 429) {
-      console.log('Rate limiting response')
-    } else {
-      console.error(error.data)
-    }
-  }
 
-  /**
-   * Set new access token for class
-   * @param token Spotify API access token
-   */
   setAccessToken(token: string) {
-    this.access_token = token
+    this.credentials.access_token = token
   }
 
-  /**
-   * Set new refresh token for class
-   * @param token Spotify API refresh token
-   */
   setRefreshToken(token: string) {
-    this.refresh_token = token
+    this.credentials.refresh_token = token
   }
 
-  /**
-   * Get access token for class
-   * @param token Spotify API access token
-   */
   getAccessToken() {
-    return this.access_token
+    return this.credentials.access_token
   }
 
-  /**
-   * Get refresh token for class
-   * @param token Spotify API refresh token
-   */
   getRefreshToken() {
-    return this.refresh_token
+    return this.credentials.refresh_token
   }
 
 
@@ -172,7 +147,7 @@ export class Player {
    * Async. Emits on channel 'Tokens' when completed
    * @param code Authorization code from Spotify
    */
-  async getTokensFromCode(code: string) {
+  async getTokensFromCode(code: string, callback?: any) {
     let config = {headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -185,32 +160,121 @@ export class Player {
       code_verifier: this.codeVerifier
     }
 
-    return await axios.post('https://accounts.spotify.com/api/token', qs.stringify(requestBody), config)
+    return await axios.post(
+      'https://accounts.spotify.com/api/token', qs.stringify(requestBody), config
+    )
     .then((response: any) => {
-      this.access_token = response.data.access_token
-      this.refresh_token = response.data.refresh_token
-      event.emit('Tokens', response.data)
+      this.setAccessToken(response.data.access_token)
+      this.setRefreshToken(response.data.refresh_token)
+      if (callback)
+        callback(response.data)
     })
     .catch((err: any) => {
       throw (err)
     })
   }
 
-  async getCurrentlyPlaying() {
+  getSavedUserData() {
+    return this.songHolder
+  }
+
+
+  /**
+   * @returns GET /player
+   */
+  async getCurrentlyPlaying(callback?: any) {
     let data: any
     data = await this._get('/player')
+    .then(res => {
+      this.songHolder = parseSpotifyResponse(res.data)
 
-    return data
-  }
-
-  async setDevice(id: string) {
-    let data: any
-    data = await this._put('/player', {
-      "devices_ids": [id]
+      if (callback)
+        callback(res)
     })
-
+    .catch(error => {
+      console.log(error.response.data)
+    })
     return data
   }
+
+  /**
+   * @returns GET /player/devices
+   */
+  async getUserDevices(callback?: any) {
+    let data: any
+    data = await this._get('/player/devices')
+    .then(res => {
+      if (callback)
+        callback(res.data)
+    })
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async getUserPlaylists(callback?: any) {
+    let data: any
+    data = await this._get('/playlists')
+    .then(res => {
+      if (callback)
+        callback(res.data)
+    })
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async getPlaylist(playlist_id: string, callback?: any) {
+    let data: any
+    data = await this._get(`/playlists/${playlist_id}`)
+    .then(res => {
+      if (callback)
+        callback(res)
+    })
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+  
+  /**
+   * 
+   * @param id 
+   */
+  async setDevice(id: string, callback?: any) {
+    let data: any
+    let body = {
+      device_ids: [id]
+    }
+
+    data = await this._put('/player/', body)
+    .then(res => {
+      if (callback)
+        callback(res.data)
+    })
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async addToUserQueue(body: any, callback?:any) {
+    let data: any
+    let url = '/player/queue/?' + qs.stringify(body)
+    data = await this._post(url)
+    .then(function() {
+      if (callback)
+        callback()
+    })
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+
 
   /**
    * Starts timer, emits song, artist, and album changes
@@ -218,18 +282,18 @@ export class Player {
    */
   begin(delay: number = 1000) {
     clearInterval(this.timer)
-    if (this.access_token) {
+    if (this.getAccessToken() != '') {
       this.getCurrentlyPlaying()
       .then(res => {
         let d = res.data
 
         this.songHolder = parseSpotifyResponse(d)
-        event.emit('update-song', d)
-        event.emit('update-artists', d)
-        event.emit('update-album', d)
+        this.event.emit('update-song', d)
+        this.event.emit('update-artists', d)
+        this.event.emit('update-album', d)
       })
-      .catch((err: any) => {
-        throw (err)
+      .catch(error => {
+        console.error(error.response.data)
       })
 
       this.timer = setInterval(() => {
@@ -238,27 +302,27 @@ export class Player {
           let d = res.data
 
           if (d.item.uri != this.songHolder.uri)
-            event.emit('update-song', d)
+            this.event.emit('update-song', d)
           if (d.item.album.uri != this.songHolder.album_uri)
-            event.emit('update-album', d)
+            this.event.emit('update-album', d)
           if (d.device.id != this.songHolder.device_id)
-            event.emit('update-device', d)
+            this.event.emit('update-device', d)
           if (d.is_playing != this.songHolder.is_playing)
-            event.emit('update-playing-state', d)
+            this.event.emit('update-playing-state', d)
           if (d.shuffle_state != this.songHolder.shuffle_state)
-            event.emit('update-shuffle-state', d)
+            this.event.emit('update-shuffle-state', d)
           if (d.repeat_state != this.songHolder.repeat_state)
-            event.emit('update-repeat-state', d)
+            this.event.emit('update-repeat-state', d)
           if (d.device.volume_percent != this.songHolder.volume)
-            event.emit('update-volume', d)
+            this.event.emit('update-volume', d)
           if (d.currently_playing_type != this.songHolder.type)
-            event.emit('update-playing-type', d)
+            this.event.emit('update-playing-type', d)
           
           this.songHolder = parseSpotifyResponse(d)
-          event.emit('update', res.data)
+          this.event.emit('update', res.data)
         })
-        .catch((err: any) => {
-          throw (err)
+        .catch(error => {
+          console.error(error.response.data)
         })
       }, delay)
     } else {
@@ -292,6 +356,7 @@ function parseSpotifyResponse(data: any) {
     shuffle_state: data.shuffle_state,
     repeat_state: data.repeat_state,
     volume: data.device.volume_percent,
-    type: data.currently_playing_type
+    type: data.currently_playing_type,
+    context: data.context
   }
 }
