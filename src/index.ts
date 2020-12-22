@@ -2,6 +2,7 @@ import axios from "axios"
 import { EventEmitter } from "events"
 import * as crypto from 'crypto'
 import * as qs from 'querystring'
+import { parse } from "path"
 
 const API_URL = "https://api.spotify.com/v1/me"
 
@@ -35,10 +36,20 @@ interface Track {
 
 export class Player {
   event = new MyEmitter()
-  timer: any
+  timer: any = null
   codeVerifier: string
   codeState: string
   codeChallenge: string
+  eventList: any = [
+    'update-song',
+    'update-album',
+    'update-device',
+    'update-playing-state',
+    'update-shuffle-state',
+    'update-repeat-state',
+    'update-volume',
+    'update-playing-type'
+  ]
   credentials: Credentials = {
     client_id: '',
     redirect_uri: '',
@@ -58,10 +69,11 @@ export class Player {
     type: "track",
     context: {}
   }
+  playerData: any = {}
   
   /**
    * 
-   * @param params Optional object. Requires 'client_id', 'redirect_uri'
+   * @param params Optional object. 'client_id', 'redirect_uri', 'scopes'
    */
   constructor(params?: any) {
     if (params) {
@@ -73,6 +85,7 @@ export class Player {
     this.codeVerifier = base64URLEncode(crypto.randomBytes(32))
     this.codeState = base64URLEncode(crypto.randomBytes(32))
     this.codeChallenge = base64URLEncode(sha256(this.codeVerifier))
+    
   }
 
   async _get(path: string, query?: any) {
@@ -143,8 +156,25 @@ export class Player {
     return authUrl
   }
 
+  getSavedUserData() {
+    return this.songHolder
+  }
+
+  getSavedPlayerData() {
+    return this.playerData
+  }
+
+  eventListener(callback: any) {
+    for (let e of this.eventList) {
+      this.event.on(e, res => {
+        callback(e, res)
+      })
+    }
+  }
+
   /**
    * Async. Emits on channel 'Tokens' when completed
+   * @param callback Callback function
    * @param code Authorization code from Spotify
    */
   async getTokensFromCode(code: string, callback?: any) {
@@ -174,36 +204,47 @@ export class Player {
     })
   }
 
-  getSavedUserData() {
-    return this.songHolder
-  }
-
 
   /**
-   * @returns GET /player
+   * @param callback Callback function
+   * @returns GET /player, callback(data)
    */
   async getCurrentlyPlaying(callback?: any) {
     let data: any
     data = await this._get('/player')
     .then(res => {
-      this.songHolder = parseSpotifyResponse(res.data)
-
-      if (callback)
-        callback(res)
+      if (res.status == 200) {
+        this.playerData = res.data
+  
+        if (callback)
+          callback(res.data)
+      } else {
+        console.log(res.status)
+        if (callback)
+          callback('')
+      }
     })
     .catch(error => {
-      console.log(error.response.data)
+      console.log('error')
+      console.log(error)
     })
     return data
   }
 
   /**
+   * @param callback Callback function
    * @returns GET /player/devices
    */
   async getUserDevices(callback?: any) {
     let data: any
     data = await this._get('/player/devices')
     .then(res => {
+      for (let i=0; i<res.data.devices.length; i++) {
+        if (res.data.devices[i].is_active) {
+          this.songHolder.device_id = res.data.devices[i].id
+          this.songHolder.volume = res.data.devices[i].volume_percent
+        }
+      }
       if (callback)
         callback(res.data)
     })
@@ -213,6 +254,11 @@ export class Player {
     return data
   }
 
+  /**
+   * 
+   * @param callback Callback function
+   * @returns GET /playlists, callback(data)
+   */
   async getUserPlaylists(callback?: any) {
     let data: any
     data = await this._get('/playlists')
@@ -226,12 +272,17 @@ export class Player {
     return data
   }
 
+  /**
+   * 
+   * @param playlist_id 
+   * @param callback 
+   */
   async getPlaylist(playlist_id: string, callback?: any) {
     let data: any
     data = await this._get(`/playlists/${playlist_id}`)
     .then(res => {
       if (callback)
-        callback(res)
+        callback(res.data)
     })
     .catch(error => {
       console.error(error.response.data)
@@ -282,49 +333,62 @@ export class Player {
    */
   begin(delay: number = 1000) {
     clearInterval(this.timer)
+    this.timer = null
     if (this.getAccessToken() != '') {
-      this.getCurrentlyPlaying()
-      .then(res => {
-        let d = res.data
-
-        this.songHolder = parseSpotifyResponse(d)
-        this.event.emit('update-song', d)
-        this.event.emit('update-artists', d)
-        this.event.emit('update-album', d)
+      this.getCurrentlyPlaying((res: any) => {
+        if (res != '') {
+          for (let e of this.eventList) {
+            this.event.emit(e, res)
+          }
+          this.songHolder = parseSpotifyResponse(res)
+        } else {
+          for (let e of this.eventList) {
+            this.event.emit(e, '')
+          }
+        }
       })
-      .catch(error => {
-        console.error(error.response.data)
-      })
 
-      this.timer = setInterval(() => {
-        this.getCurrentlyPlaying()
-        .then(res => {
-          let d = res.data
+      if (this.timer == null)
+        this.timer = setInterval(() => {
+          this.getCurrentlyPlaying((res: any) => {
+            if (res != '') {
+              if (res.item.uri != this.songHolder.uri)
+                this.event.emit('update-song', res)
+              if (res.item.album.uri != this.songHolder.album_uri)
+                this.event.emit('update-album', res)
+              if (res.device.id != this.songHolder.device_id)
+                this.event.emit('update-device', res)
+              if (res.is_playing != this.songHolder.is_playing)
+                this.event.emit('update-playing-state', res)
+              if (res.shuffle_state != this.songHolder.shuffle_state)
+                this.event.emit('update-shuffle-state', res)
+              if (res.repeat_state != this.songHolder.repeat_state)
+                this.event.emit('update-repeat-state', res)
+              if (res.device.volume_percent != this.songHolder.volume)
+                this.event.emit('update-volume', res)
+              if (res.currently_playing_type != this.songHolder.type)
+                this.event.emit('update-playing-type', res)
 
-          if (d.item.uri != this.songHolder.uri)
-            this.event.emit('update-song', d)
-          if (d.item.album.uri != this.songHolder.album_uri)
-            this.event.emit('update-album', d)
-          if (d.device.id != this.songHolder.device_id)
-            this.event.emit('update-device', d)
-          if (d.is_playing != this.songHolder.is_playing)
-            this.event.emit('update-playing-state', d)
-          if (d.shuffle_state != this.songHolder.shuffle_state)
-            this.event.emit('update-shuffle-state', d)
-          if (d.repeat_state != this.songHolder.repeat_state)
-            this.event.emit('update-repeat-state', d)
-          if (d.device.volume_percent != this.songHolder.volume)
-            this.event.emit('update-volume', d)
-          if (d.currently_playing_type != this.songHolder.type)
-            this.event.emit('update-playing-type', d)
-          
-          this.songHolder = parseSpotifyResponse(d)
-          this.event.emit('update', res.data)
-        })
-        .catch(error => {
-          console.error(error.response.data)
-        })
-      }, delay)
+              this.songHolder = parseSpotifyResponse(res)
+            } else {
+              for (let e of this.eventList) {
+                this.event.emit(e, '')
+                this.songHolder = {
+                  uri: '',
+                  artists: [],
+                  album_uri: '',
+                  device_id: '',
+                  is_playing: false,
+                  shuffle_state: false,
+                  repeat_state: "off",
+                  volume: 0,
+                  type: "track",
+                  context: {}
+                }
+              }
+            }
+          })
+        }, delay)
     } else {
       console.error("Access token not set!")
     }

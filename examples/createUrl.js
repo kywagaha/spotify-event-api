@@ -8,7 +8,7 @@ var server = app.listen(port)
 console.log(`listening on port ${port}`)
 
 var sPlay = new spotifyEventApi.Player({
-    client_id: 'CLIENT_ID',
+    client_id: 'a9ce5b430aca4e87ae43c8e4c243013e',
     redirect_uri: `http://localhost:${port}/callback`,
     scopes: [
         "user-read-playback-state",

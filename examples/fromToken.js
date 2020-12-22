@@ -2,7 +2,7 @@ var spotifyEventApi = require('@kywagaha/spotify-event-api')
 var sPlay = new spotifyEventApi.Player()
 
 sPlay.setAccessToken(
-    'ACCESS_TOKEN'
+    'BQBlEH4vrI7WcSrnEblo0PjBtQz-lDrIXIGEXeBhnC2DnybkufVCoj_Ul46EaWza3FG7xfcgvBr5PR4IM-e_lktyOSgBu0ZR_RkuNHMRqNTJBp3Gk-qLXLSLTW5JykKU8-PDpSIPZDAdlasw8eyVbO5nP5E5lD_P_Sz79ENaxHG-UBrOa7NhMP-bNQ'
 )
 
 // sPlay.begin()
@@ -39,7 +39,7 @@ sPlay.setAccessToken(
 
 
 // sPlay.getUserDevices(function(data) {
-//     console.log(data)
+//     // console.log(data)
 // })
 
 // sPlay.getUserPlaylists(function(res) {
@@ -49,7 +49,21 @@ sPlay.setAccessToken(
 // })
 
 // sPlay.getCurrentlyPlaying(res => {
-//     console.log(sPlay.getSavedUserData())
+//     // console.log(res)
+// })
+
+sPlay.begin()
+
+sPlay.eventListener(function (myEvent, myEventResponse) {
+    console.log(myEvent, '')
+})
+
+// sPlay.event.on('update-song', res => {
+//     console.log(res.item.name)
+// })
+
+// sPlay.eventListener((eName, data) => {
+//     console.log(eName, data)
 // })
 
 // sPlay.addToUserQueue({
