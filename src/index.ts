@@ -85,7 +85,6 @@ export class Player {
     this.codeVerifier = base64URLEncode(crypto.randomBytes(32))
     this.codeState = base64URLEncode(crypto.randomBytes(32))
     this.codeChallenge = base64URLEncode(sha256(this.codeVerifier))
-    
   }
 
   async _get(path: string, query?: any) {
