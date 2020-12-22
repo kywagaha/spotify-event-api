@@ -1,9 +1,7 @@
-var spotifyEventApi = require('@kywagaha/spotify-event-api')
-var sPlay = new spotifyEventApi.Player()
+var spotifyEventApi = require("@kywagaha/spotify-event-api");
+var sPlay = new spotifyEventApi.Player();
 
-sPlay.setAccessToken(
-    'BQBlEH4vrI7WcSrnEblo0PjBtQz-lDrIXIGEXeBhnC2DnybkufVCoj_Ul46EaWza3FG7xfcgvBr5PR4IM-e_lktyOSgBu0ZR_RkuNHMRqNTJBp3Gk-qLXLSLTW5JykKU8-PDpSIPZDAdlasw8eyVbO5nP5E5lD_P_Sz79ENaxHG-UBrOa7NhMP-bNQ'
-)
+sPlay.setAccessToken("token");
 
 // sPlay.begin()
 
@@ -37,7 +35,6 @@ sPlay.setAccessToken(
 //  * })
 //  */
 
-
 // sPlay.getUserDevices(function(data) {
 //     // console.log(data)
 // })
@@ -52,11 +49,11 @@ sPlay.setAccessToken(
 //     // console.log(res)
 // })
 
-sPlay.begin()
+sPlay.begin();
 
 sPlay.eventListener(function (myEvent, myEventResponse) {
-    console.log(myEvent, '')
-})
+  console.log(myEvent, "");
+});
 
 // sPlay.event.on('update-song', res => {
 //     console.log(res.item.name)
@@ -73,4 +70,3 @@ sPlay.eventListener(function (myEvent, myEventResponse) {
 // })
 
 // sPlay.setDevice("")
-
