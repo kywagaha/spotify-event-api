@@ -1,6 +1,6 @@
 {
   "name": "@kywagaha/spotify-event-api",
-  "version": "0.1.7",
+  "version": "0.1.75",
   "main": "lib/index.js",
   "types": "lib",
   "scripts": {
