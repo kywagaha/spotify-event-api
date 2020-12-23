@@ -36,7 +36,6 @@ interface Track {
 
 export class Player {
   event = new MyEmitter();
-  running = false;
   timer: any = null;
   codeVerifier: string;
   codeState: string;
@@ -321,12 +320,6 @@ export class Player {
    * @param delay Time to refresh in ms. Default 1000ms
    */
   begin(delay: number = 1000) {
-    if (this.running == false) {
-      this.running = true;
-    } else {
-      console.warn("already running!");
-      return;
-    }
     clearInterval(this.timer);
     this.timer = null;
     if (this.getAccessToken() != "") {
@@ -387,6 +380,13 @@ export class Player {
     } else {
       console.error("Access token not set!");
     }
+  }
+
+  /**
+   * Stop timer (and kill program)
+   */
+  stop() {
+    clearInterval(this.timer);
   }
 }
 
