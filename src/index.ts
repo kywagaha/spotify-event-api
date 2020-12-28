@@ -302,21 +302,118 @@ export class Player {
     return data;
   }
 
-  async addToUserQueue(body: any, callback?: any) {
-    let data: any;
-    let url = "/player/queue/?" + qs.stringify(body);
+  async addToUserQueue(body: any) {
+    let data: void
+    let url = '/player/queue/?' + qs.stringify(body)
     data = await this._post(url)
-      .then(function () {
-        if (callback) callback();
-      })
-      .catch((error) => {
-        console.error(error.response.data);
-      });
-    return data;
+    .then(() => {})
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async play() {
+    let url = '/player/play'
+    let data = await this._put(url)
+    .then(() => {})
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async pause() {
+    let url = '/player/pause'
+    let data = await this._put(url)
+    .then(() => {})
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async skip() {
+    let url = '/player/next'
+    let data = await this._post(url)
+    .then(() => {})
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async previous() {
+    let url = '/player/previous'
+    let data = await this._post(url)
+    .then(() => {})
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async repeat(state: string) {
+    let url = '/player/repeat?' + qs.stringify({state: state})
+    let data = await this._put(url)
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async shuffle(state: boolean) {
+    let url = '/player/shuffle?' + qs.stringify({state: state})
+    let data = await this._put(url)
+    .then(() => {})
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
+  }
+
+  async togglePlayback() {
+    this.getCurrentlyPlaying((response: any) => {
+      if (response.is_playing === true)
+        this.pause()
+      else
+        this.play()
+    })
+  }
+
+  async toggleRepeat() {
+    this.getCurrentlyPlaying((response: any) => {
+      switch (response.repeat_state) {
+        case 'off':
+          this.repeat('context')
+          break;
+        case 'context':
+          this.repeat('track')
+          break;
+        case 'track':
+          this.repeat('off')
+      }
+    })
+  }
+
+  async toggleShuffle() {
+    this.getCurrentlyPlaying((response: any) => {
+      this.shuffle(!response.shuffle_state)
+    })
+  }
+
+  async setVolume(value: number) {
+    let url = '/player/volume?' + qs.stringify({volume_percent: value})
+    let data = this._put(url)
+    .then(() => {})
+    .catch(error => {
+      console.error(error.response.data)
+    })
+    return data
   }
 
   /**
-   * Starts timer, emits song, artist, and album changes
+   * Starts timer, emits changes
    * @param delay Time to refresh in ms. Default 1000ms
    */
   begin(delay: number = 1000) {
@@ -356,8 +453,9 @@ export class Player {
                 this.event.emit("update-volume", res);
               if (res.currently_playing_type != this.songHolder.type)
                 this.event.emit("update-playing-type", res);
+              this.event.emit('progress-percent', res.progress_ms / res.item.duration_ms)
 
-              this.songHolder = parseSpotifyResponse(res);
+              this.songHolder = parseSpotifyResponse(res)
             } else {
               for (let e of this.eventList) {
                 this.event.emit(e, "");
@@ -381,6 +479,15 @@ export class Player {
       console.error("Access token not set!");
     }
   }
+
+  /**
+   * Stop timer (and kill program)
+   */
+  stop() {
+    clearInterval(this.timer);
+  }
+
+}
 
   /**
    * Stop timer (and kill program)

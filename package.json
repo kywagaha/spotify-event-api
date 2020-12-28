@@ -1,6 +1,6 @@
 {
   "name": "@kywagaha/spotify-event-api",
-  "version": "0.1.75",
+  "version": "0.2.0",
   "main": "lib/index.js",
   "types": "lib",
   "scripts": {
@@ -18,8 +18,8 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@types/node": "^14.14.13",
-    "axios": "^0.21.0",
+    "@types/node": "^14.14.16",
+    "axios": "^0.21.1",
     "events": "^3.2.0",
     "querystring": "^0.2.0"
   },
