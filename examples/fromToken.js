@@ -49,6 +49,8 @@ sPlay.begin()
 //     // console.log(res)
 // })
 
+// sPlay.event.on('progress', res => {console.log(res)})
+
 // sPlay.begin();
 
 // sPlay.eventListener(function (myEvent, myEventResponse) {
