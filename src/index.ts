@@ -2,7 +2,6 @@ import axios from "axios";
 import { EventEmitter } from "events";
 import * as crypto from "crypto";
 import * as qs from "querystring";
-import { parse } from "path";
 
 const API_URL = "https://api.spotify.com/v1/me";
 
@@ -144,12 +143,12 @@ export class Player {
         if (res.currently_playing_type != this.songHolder.type)
           this.event.emit("update-playing-type", res);
 
-        this.event.emit('progress', {
+        this.event.emit("progress", {
           progress_percent: res.progress_ms / res.item.duration_ms,
           delta_percent: 1000 / res.item.duration_ms,
           progress_ms: res.progress_ms,
           duration_ms: res.item.duration_ms,
-        })
+        });
 
         this.songHolder = parseSpotifyResponse(res);
       } else {
@@ -169,8 +168,8 @@ export class Player {
           };
         }
       }
-      if (callback) callback()
-    })
+      if (callback) callback();
+    });
   }
 
   _catch(error: any) {
@@ -248,27 +247,27 @@ export class Player {
         if (callback) callback(response.data);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
   getCurrentlyPlaying(callback?: any) {
     this._get("/player")
       .then((res) => {
-        if (callback) callback(res.data)
+        if (callback) callback(res.data);
         if (res.status == 200) {
           this.playerData = res.data;
         }
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
   getUserDevices(callback?: any) {
     this._get("/player/devices")
       .then((res) => {
-        this._update(callback)
+        this._update(callback);
         for (let i = 0; i < res.data.devices.length; i++) {
           if (res.data.devices[i].is_active) {
             this.songHolder.device_id = res.data.devices[i].id;
@@ -277,17 +276,17 @@ export class Player {
         }
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
   getUserPlaylists(callback: any) {
     this._get("/playlists")
       .then((res) => {
-        callback(res)
+        callback(res);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -297,7 +296,7 @@ export class Player {
         callback(res.data);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -307,10 +306,10 @@ export class Player {
     };
     this._put("/player/", body)
       .then(() => {
-        this._update(callback)
+        this._update(callback);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -318,10 +317,10 @@ export class Player {
     let url = "/player/queue/?" + qs.stringify(body);
     this._post(url)
       .then(() => {
-        this._update(callback)
+        this._update(callback);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -329,10 +328,10 @@ export class Player {
     let url = "/player/play";
     this._put(url)
       .then(() => {
-        this._update(callback)
+        this._update(callback);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -340,10 +339,10 @@ export class Player {
     let url = "/player/pause";
     this._put(url)
       .then(() => {
-        this._update(callback)
+        this._update(callback);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -351,10 +350,10 @@ export class Player {
     let url = "/player/next";
     this._post(url)
       .then(() => {
-        this._update(callback)
+        this._update(callback);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -362,32 +361,32 @@ export class Player {
     let url = "/player/previous";
     this._post(url)
       .then(() => {
-        this._update(callback)
+        this._update(callback);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
   repeat(state: string, callback?: any) {
     let url = "/player/repeat?" + qs.stringify({ state: state });
     this._put(url)
-    .then(() => {
-      this._update(callback)
-    })
-    .catch((error) => {
-      this._catch(error)
-    });
+      .then(() => {
+        this._update(callback);
+      })
+      .catch((error) => {
+        this._catch(error);
+      });
   }
 
   shuffle(state: boolean, callback?: any) {
     let url = "/player/shuffle?" + qs.stringify({ state: state });
     this._put(url)
       .then(() => {
-        this._update(callback)
+        this._update(callback);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -423,10 +422,10 @@ export class Player {
     let url = "/player/volume?" + qs.stringify({ volume_percent: value });
     this._put(url)
       .then(() => {
-        this._update(callback)
+        this._update(callback);
       })
       .catch((error) => {
-        this._catch(error)
+        this._catch(error);
       });
   }
 
@@ -453,10 +452,9 @@ export class Player {
       if (this.timer === null) {
         console.log(`Updating every ${delay} ms`);
         setInterval(() => {
-          this._update()
-        }, delay)
+          this._update();
+        }, delay);
       }
-
     } else {
       console.error("Access token not set!");
     }
