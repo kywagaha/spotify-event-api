@@ -19,5 +19,15 @@ current event emitters:
 ```
 
 all return full spotify '/player/' body
-<br /><br />
-`'progress-percent'` will be emitted every update with the current track playback percent
+<br />
+<br />
+`'progress'` emits every second (every api update) with an object:
+
+```
+{
+  progress_percent: float percent between 0 and 1 (number),
+  delta_percent: 1000 / song duration in ms (~0.005% accuracy, excuse for api request delay) (number),
+  progress_ms: track's progress in ms (number),
+  duration_ms: track's duration in ms (number)
+}
+```

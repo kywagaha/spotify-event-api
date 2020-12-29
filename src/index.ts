@@ -450,10 +450,13 @@ export class Player {
                 this.event.emit("update-volume", res);
               if (res.currently_playing_type != this.songHolder.type)
                 this.event.emit("update-playing-type", res);
-              this.event.emit(
-                "progress-percent",
-                res.progress_ms / res.item.duration_ms
-              );
+
+              this.event.emit('progress', {
+                progress_percent: res.progress_ms / res.item.duration_ms,
+                delta_percent: 1000 / res.item.duration_ms,
+                progress_ms: res.progress_ms,
+                duration_ms: res.item.duration_ms,
+              })
 
               this.songHolder = parseSpotifyResponse(res);
             } else {
@@ -485,6 +488,9 @@ export class Player {
    */
   stop() {
     clearInterval(this.timer);
+    for (let e of this.eventList) {
+      this.event.emit(e, "");
+    }
   }
 }
 
