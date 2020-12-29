@@ -465,7 +465,6 @@ export class Player {
    */
   stop() {
     clearInterval(this.timer);
-    this.timer = null;
   }
 }
 
