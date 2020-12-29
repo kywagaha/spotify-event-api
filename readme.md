@@ -1,5 +1,6 @@
 # spotify-event-api
 Work in progress.
+Requires NodeJS 12
 
 # Callbacks
 
@@ -18,7 +19,7 @@ current event emitters:
 'update-playing-type'
 ```
 
-all return full spotify '/player/' body
+all return full spotify '/player' body
 <br />
 <br />
 `'progress'` emits every second (every api update) with an object:

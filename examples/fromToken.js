@@ -3,7 +3,7 @@ var sPlay = new spotifyEventApi.Player();
 
 sPlay.setAccessToken("token");
 
-// sPlay.begin()
+sPlay.begin()
 
 // sPlay.event.on('update-song', res => {
 //     console.log('Track:', res.item.name)
@@ -49,11 +49,11 @@ sPlay.setAccessToken("token");
 //     // console.log(res)
 // })
 
-sPlay.begin();
+// sPlay.begin();
 
-sPlay.eventListener(function (myEvent, myEventResponse) {
-  console.log(myEvent, "");
-});
+// sPlay.eventListener(function (myEvent, myEventResponse) {
+//   console.log(myEvent, "");
+// });
 
 // sPlay.event.on('update-song', res => {
 //     console.log(res.item.name)

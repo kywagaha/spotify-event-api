@@ -87,7 +87,7 @@ export class Player {
     this.codeChallenge = base64URLEncode(sha256(this.codeVerifier));
   }
 
-  async _get(path: string, query?: any) {
+  _get(path: string, query?: any) {
     const config = {
       headers: {
         Accept: "application/json",
@@ -97,10 +97,10 @@ export class Player {
     };
     let url = API_URL + path;
     if (query) url += qs.stringify(query);
-    return await axios.get(url, config);
+    return axios.get(url, config);
   }
 
-  async _put(path: string, data?: any) {
+  _put(path: string, data?: any) {
     const config = {
       headers: {
         Accept: "application/json",
@@ -109,10 +109,10 @@ export class Player {
       },
     };
     let url = API_URL + path;
-    return await axios.put(url, data, config);
+    return axios.put(url, data, config);
   }
 
-  async _post(path: string, data?: any) {
+  _post(path: string, data?: any) {
     const config = {
       headers: {
         Accept: "application/json",
@@ -121,7 +121,60 @@ export class Player {
       },
     };
     let url = API_URL + path;
-    return await axios.post(url, qs.stringify(data), config);
+    return axios.post(url, qs.stringify(data), config);
+  }
+
+  _update(callback?: any) {
+    this.getCurrentlyPlaying((res: any) => {
+      if (res != "") {
+        if (res.item.uri != this.songHolder.uri)
+          this.event.emit("update-song", res);
+        if (res.item.album.uri != this.songHolder.album_uri)
+          this.event.emit("update-album", res);
+        if (res.device.id != this.songHolder.device_id)
+          this.event.emit("update-device", res);
+        if (res.is_playing != this.songHolder.is_playing)
+          this.event.emit("update-playing-state", res);
+        if (res.shuffle_state != this.songHolder.shuffle_state)
+          this.event.emit("update-shuffle-state", res);
+        if (res.repeat_state != this.songHolder.repeat_state)
+          this.event.emit("update-repeat-state", res);
+        if (res.device.volume_percent != this.songHolder.volume)
+          this.event.emit("update-volume", res);
+        if (res.currently_playing_type != this.songHolder.type)
+          this.event.emit("update-playing-type", res);
+
+        this.event.emit('progress', {
+          progress_percent: res.progress_ms / res.item.duration_ms,
+          delta_percent: 1000 / res.item.duration_ms,
+          progress_ms: res.progress_ms,
+          duration_ms: res.item.duration_ms,
+        })
+
+        this.songHolder = parseSpotifyResponse(res);
+      } else {
+        for (let e of this.eventList) {
+          this.event.emit(e, null);
+          this.songHolder = {
+            uri: "",
+            artists: [],
+            album_uri: "",
+            device_id: "",
+            is_playing: false,
+            shuffle_state: false,
+            repeat_state: "off",
+            volume: 0,
+            type: "track",
+            context: {},
+          };
+        }
+      }
+      if (callback) callback()
+    })
+  }
+
+  _catch(error: any) {
+    console.error(error.response.data);
   }
 
   setAccessToken(token: string) {
@@ -169,12 +222,7 @@ export class Player {
     }
   }
 
-  /**
-   * Async. Emits on channel 'Tokens' when completed
-   * @param callback Callback function
-   * @param code Authorization code from Spotify
-   */
-  async getTokensFromCode(code: string, callback?: any) {
+  getTokensFromCode(code: string, callback?: any) {
     let config = {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -188,225 +236,198 @@ export class Player {
       code_verifier: this.codeVerifier,
     };
 
-    return await axios
+    axios
       .post(
         "https://accounts.spotify.com/api/token",
         qs.stringify(requestBody),
         config
       )
-      .then((response: any) => {
+      .then((response) => {
         this.setAccessToken(response.data.access_token);
         this.setRefreshToken(response.data.refresh_token);
         if (callback) callback(response.data);
       })
-      .catch((err: any) => {
-        throw err;
+      .catch((error) => {
+        this._catch(error)
       });
   }
 
-  /**
-   * @param callback Callback function
-   * @returns GET /player, callback(data)
-   */
-  async getCurrentlyPlaying(callback?: any) {
-    let data: any;
-    data = await this._get("/player")
+  getCurrentlyPlaying(callback?: any) {
+    this._get("/player")
       .then((res) => {
+        if (callback) callback(res.data)
         if (res.status == 200) {
           this.playerData = res.data;
-
-          if (callback) callback(res.data);
-        } else {
-          if (callback) callback("");
         }
       })
       .catch((error) => {
-        console.log(error);
+        this._catch(error)
       });
-    return data;
   }
 
-  /**
-   * @param callback Callback function
-   * @returns GET /player/devices
-   */
-  async getUserDevices(callback?: any) {
-    let data: any;
-    data = await this._get("/player/devices")
+  getUserDevices(callback?: any) {
+    this._get("/player/devices")
       .then((res) => {
+        this._update(callback)
         for (let i = 0; i < res.data.devices.length; i++) {
           if (res.data.devices[i].is_active) {
             this.songHolder.device_id = res.data.devices[i].id;
             this.songHolder.volume = res.data.devices[i].volume_percent;
           }
         }
-        if (callback) callback(res.data);
       })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  /**
-   *
-   * @param callback Callback function
-   * @returns GET /playlists, callback(data)
-   */
-  async getUserPlaylists(callback?: any) {
-    let data: any;
-    data = await this._get("/playlists")
+  getUserPlaylists(callback: any) {
+    this._get("/playlists")
       .then((res) => {
-        if (callback) callback(res.data);
+        callback(res)
       })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  /**
-   *
-   * @param playlist_id
-   * @param callback
-   */
-  async getPlaylist(playlist_id: string, callback?: any) {
-    let data: any;
-    data = await this._get(`/playlists/${playlist_id}`)
+  getPlaylist(playlist_id: string, callback: any) {
+    this._get(`/playlists/${playlist_id}`)
       .then((res) => {
-        if (callback) callback(res.data);
+        callback(res.data);
       })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  /**
-   *
-   * @param id
-   */
-  async setDevice(id: string, callback?: any) {
-    let data: any;
+  setDevice(id: string, callback?: any) {
     let body = {
       device_ids: [id],
     };
-
-    data = await this._put("/player/", body)
-      .then((res) => {
-        if (callback) callback(res.data);
+    this._put("/player/", body)
+      .then(() => {
+        this._update(callback)
       })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  async addToUserQueue(body: any) {
-    let data: void;
+  addToUserQueue(body: any, callback?: any) {
     let url = "/player/queue/?" + qs.stringify(body);
-    data = await this._post(url)
-      .then(() => {})
+    this._post(url)
+      .then(() => {
+        this._update(callback)
+      })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  async play() {
+  play(callback?: any) {
     let url = "/player/play";
-    let data = await this._put(url)
-      .then(() => {})
+    this._put(url)
+      .then(() => {
+        this._update(callback)
+      })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  async pause() {
+  pause(callback?: any) {
     let url = "/player/pause";
-    let data = await this._put(url)
-      .then(() => {})
+    this._put(url)
+      .then(() => {
+        this._update(callback)
+      })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  async skip() {
+  skip(callback?: any) {
     let url = "/player/next";
-    let data = await this._post(url)
-      .then(() => {})
+    this._post(url)
+      .then(() => {
+        this._update(callback)
+      })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  async previous() {
+  previous(callback?: any) {
     let url = "/player/previous";
-    let data = await this._post(url)
-      .then(() => {})
+    this._post(url)
+      .then(() => {
+        this._update(callback)
+      })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  async repeat(state: string) {
+  repeat(state: string, callback?: any) {
     let url = "/player/repeat?" + qs.stringify({ state: state });
-    let data = await this._put(url).catch((error) => {
-      console.error(error.response.data);
+    this._put(url)
+    .then(() => {
+      this._update(callback)
+    })
+    .catch((error) => {
+      this._catch(error)
     });
-    return data;
   }
 
-  async shuffle(state: boolean) {
+  shuffle(state: boolean, callback?: any) {
     let url = "/player/shuffle?" + qs.stringify({ state: state });
-    let data = await this._put(url)
-      .then(() => {})
+    this._put(url)
+      .then(() => {
+        this._update(callback)
+      })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
-  async togglePlayback() {
+  togglePlayback(callback?: any) {
     this.getCurrentlyPlaying((response: any) => {
-      if (response.is_playing === true) this.pause();
-      else this.play();
+      if (response.is_playing === true) this.pause(callback);
+      else this.play(callback);
     });
   }
 
-  async toggleRepeat() {
+  toggleRepeat(callback?: any) {
     this.getCurrentlyPlaying((response: any) => {
       switch (response.repeat_state) {
         case "off":
-          this.repeat("context");
+          this.repeat("context", callback);
           break;
         case "context":
-          this.repeat("track");
+          this.repeat("track", callback);
           break;
         case "track":
-          this.repeat("off");
+          this.repeat("off", callback);
       }
     });
   }
 
-  async toggleShuffle() {
+  toggleShuffle(callback?: any) {
     this.getCurrentlyPlaying((response: any) => {
-      this.shuffle(!response.shuffle_state);
+      this.shuffle(!response.shuffle_state, callback);
     });
   }
 
-  async setVolume(value: number) {
+  setVolume(value: number, callback?: any) {
     let url = "/player/volume?" + qs.stringify({ volume_percent: value });
-    let data = this._put(url)
-      .then(() => {})
+    this._put(url)
+      .then(() => {
+        this._update(callback)
+      })
       .catch((error) => {
-        console.error(error.response.data);
+        this._catch(error)
       });
-    return data;
   }
 
   /**
@@ -414,8 +435,7 @@ export class Player {
    * @param delay Time to refresh in ms. Default 1000ms
    */
   begin(delay: number = 1000) {
-    clearInterval(this.timer);
-    this.timer = null;
+    this.stop();
     if (this.getAccessToken() != "") {
       this.getCurrentlyPlaying((res: any) => {
         if (res != "") {
@@ -430,54 +450,13 @@ export class Player {
         }
       });
 
-      if (this.timer == null)
-        this.timer = setInterval(() => {
-          this.getCurrentlyPlaying((res: any) => {
-            if (res != "") {
-              if (res.item.uri != this.songHolder.uri)
-                this.event.emit("update-song", res);
-              if (res.item.album.uri != this.songHolder.album_uri)
-                this.event.emit("update-album", res);
-              if (res.device.id != this.songHolder.device_id)
-                this.event.emit("update-device", res);
-              if (res.is_playing != this.songHolder.is_playing)
-                this.event.emit("update-playing-state", res);
-              if (res.shuffle_state != this.songHolder.shuffle_state)
-                this.event.emit("update-shuffle-state", res);
-              if (res.repeat_state != this.songHolder.repeat_state)
-                this.event.emit("update-repeat-state", res);
-              if (res.device.volume_percent != this.songHolder.volume)
-                this.event.emit("update-volume", res);
-              if (res.currently_playing_type != this.songHolder.type)
-                this.event.emit("update-playing-type", res);
+      if (this.timer === null) {
+        console.log(`Updating every ${delay} ms`);
+        setInterval(() => {
+          this._update()
+        }, delay)
+      }
 
-              this.event.emit('progress', {
-                progress_percent: res.progress_ms / res.item.duration_ms,
-                delta_percent: 1000 / res.item.duration_ms,
-                progress_ms: res.progress_ms,
-                duration_ms: res.item.duration_ms,
-              })
-
-              this.songHolder = parseSpotifyResponse(res);
-            } else {
-              for (let e of this.eventList) {
-                this.event.emit(e, "");
-                this.songHolder = {
-                  uri: "",
-                  artists: [],
-                  album_uri: "",
-                  device_id: "",
-                  is_playing: false,
-                  shuffle_state: false,
-                  repeat_state: "off",
-                  volume: 0,
-                  type: "track",
-                  context: {},
-                };
-              }
-            }
-          });
-        }, delay);
     } else {
       console.error("Access token not set!");
     }
@@ -488,9 +467,7 @@ export class Player {
    */
   stop() {
     clearInterval(this.timer);
-    for (let e of this.eventList) {
-      this.event.emit(e, "");
-    }
+    this.timer = null;
   }
 }
 
