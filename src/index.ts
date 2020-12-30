@@ -409,33 +409,35 @@ export class Player {
         this._catch(error);
       });
   }
-
   togglePlayback(callback?: any) {
-    this.getCurrentlyPlaying((response: any) => {
-      if (response.is_playing === true) this.pause(callback);
-      else this.play(callback);
-    });
+      this.getCurrentlyPlaying((response: any) => {
+        console.log(response.data.is_playing)
+        if (response.data.is_playing === true)
+            this.pause(callback);
+        else if (response.data.is_playing === false)
+            this.play(callback);
+      });
   }
 
   toggleRepeat(callback?: any) {
-    this.getCurrentlyPlaying((response: any) => {
-      switch (response.repeat_state) {
-        case "off":
-          this.repeat("context", callback);
-          break;
-        case "context":
-          this.repeat("track", callback);
-          break;
-        case "track":
-          this.repeat("off", callback);
-      }
-    });
+      this.getCurrentlyPlaying((response: any) => {
+          switch (response.data.repeat_state) {
+              case "off":
+                  this.repeat("context", callback);
+                  break;
+              case "context":
+                  this.repeat("track", callback);
+                  break;
+              case "track":
+                  this.repeat("off", callback);
+          }
+      });
   }
 
   toggleShuffle(callback?: any) {
-    this.getCurrentlyPlaying((response: any) => {
-      this.shuffle(!response.shuffle_state, callback);
-    });
+      this.getCurrentlyPlaying((response: any) => {
+          this.shuffle(!response.data.shuffle_state, callback);
+      });
   }
 
   setVolume(value: number, callback?: any) {
@@ -449,45 +451,47 @@ export class Player {
       });
   }
 
-  /**
-   * Starts timer, emits changes
-   * @param delay Time to refresh in ms. Default 1000ms
-   */
-  begin(delay: number = 1000) {
-    this.stop();
-    if (this.getAccessToken() != "") {
-      this.getCurrentlyPlaying((res: any) => {
-        if (res != "") {
-          for (let e of this.eventList) {
-            this.event.emit(e, res);
-          }
-          if (res.data)
-          this.songHolder = parseSpotifyResponse(res.data);
-        } else {
-          for (let e of this.eventList) {
-            this.event.emit(e, "");
-          }
-        }
-      });
+  /* Commented out because handling an interval in a library was too buggy */
+  //
+  // /**
+  //  * Starts timer, emits changes
+  //  * @param delay Time to refresh in ms. Default 1000ms
+  //  */
+  // begin(delay: number = 1000) {
+  //   this.stop();
+  //   if (this.getAccessToken() != "") {
+  //     this.getCurrentlyPlaying((res: any) => {
+  //       if (res != "") {
+  //         for (let e of this.eventList) {
+  //           this.event.emit(e, res);
+  //         }
+  //         if (res.data)
+  //         this.songHolder = parseSpotifyResponse(res.data);
+  //       } else {
+  //         for (let e of this.eventList) {
+  //           this.event.emit(e, "");
+  //         }
+  //       }
+  //     });
 
-      if (this.timer === null) {
-        console.log(`Updating every ${delay} ms`);
-        setInterval(() => {
-          this.update();
-        }, delay);
-      }
-    } else {
-      console.error("Access token not set!");
-    }
-  }
+  //     if (this.timer === null) {
+  //       console.log(`Updating every ${delay} ms`);
+  //       setInterval(() => {
+  //         this.update();
+  //       }, delay);
+  //     }
+  //   } else {
+  //     console.error("Access token not set!");
+  //   }
+  // }
 
-  /**
-   * Stop timer (and kill program)
-   */
-  stop() {
-    clearInterval(this.timer);
-    this.timer = null;
-  }
+  // /**
+  //  * Stop timer (and kill program)
+  //  */
+  // stop() {
+  //   clearInterval(this.timer);
+  //   this.timer = null;
+  // }
 }
 
 function sha256(str: string) {

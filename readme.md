@@ -2,20 +2,22 @@
 Work in progress.
 Requires NodeJS 12
 
-# Callbacks
+## Callbacks
 
 ```js
+var spotifyEventApi = require('@kywagaha/spotify-event-api')
+var spotifyApi = new spotifyEventApi.Player();
 require('spotify-event-api').event.on(event, response)
 ```
 current event emitters:
 ```js
-'update-song'
-'update-album'
-'update-device'
-'update-playing-state'
-'update-shuffle-state'
-'update-repeat-state'
-'update-volume'
+'update-song',
+'update-album',
+'update-device',
+'update-playing-state',
+'update-shuffle-state',
+'update-repeat-state',
+'update-volume',
 'update-playing-type'
 ```
 
@@ -26,9 +28,12 @@ all return full spotify '/player' body
 
 ```
 {
-  progress_percent: float percent between 0 and 1 (number),
-  delta_percent: 1000 / song duration in ms (~0.005% accuracy, excuse for api request delay) (number),
-  progress_ms: track's progress in ms (number),
-  duration_ms: track's duration in ms (number)
+  duration_ms: number,
+  progress_ms: number,
+  progress_percent: number,
+  delta_percent: number,
+  delta_ms: number
 }
 ```
+
+## Authorization
