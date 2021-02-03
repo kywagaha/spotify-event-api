@@ -2,6 +2,8 @@
 Work in progress.
 Requires NodeJS 12
 
+Note: `fromToken.js` example is broken right now.
+
 ## Callbacks
 
 ```js
