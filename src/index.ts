@@ -33,6 +33,14 @@ interface Track {
   context: Object;
 }
 
+interface Progress {
+  duration_ms: number;
+  progress_ms: number;
+  progress_percent: number;
+  delta_percent: number;
+  delta_ms: number;
+}
+
 export class Player {
   event = new MyEmitter();
   timer: any = null;
@@ -67,6 +75,13 @@ export class Player {
     volume: 0,
     type: "track",
     context: {},
+  };
+  progressData: Progress = {
+    duration_ms: 0,
+    progress_ms: 0,
+    delta_ms: 0,
+    delta_percent: 0,
+    progress_percent: 0,
   };
   playerData: any = {};
 
@@ -123,9 +138,10 @@ export class Player {
     return axios.post(url, qs.stringify(data), config);
   }
 
-  _update(callback?: any) {
+  update(callback?: any) {
     this.getCurrentlyPlaying((res: any) => {
-      if (res != "") {
+      if (res.data) {
+        res = res.data;
         if (res.item.uri != this.songHolder.uri)
           this.event.emit("update-song", res);
         if (res.item.album.uri != this.songHolder.album_uri)
@@ -143,13 +159,18 @@ export class Player {
         if (res.currently_playing_type != this.songHolder.type)
           this.event.emit("update-playing-type", res);
 
-        this.event.emit("progress", {
-          progress_percent: res.progress_ms / res.item.duration_ms,
-          delta_percent: 1000 / res.item.duration_ms,
-          progress_ms: res.progress_ms,
+        let deltaMs = res.progress_ms - this.progressData.progress_ms;
+        let deltaPercent =
+          res.progress_ms / res.item.duration_ms -
+          this.progressData.progress_percent;
+        this.progressData = {
           duration_ms: res.item.duration_ms,
-        });
-
+          progress_ms: res.progress_ms,
+          progress_percent: res.progress_ms / res.item.duration_ms,
+          delta_ms: deltaMs,
+          delta_percent: deltaPercent,
+        };
+        this.event.emit("progress", this.progressData);
         this.songHolder = parseSpotifyResponse(res);
       } else {
         for (let e of this.eventList) {
@@ -254,9 +275,9 @@ export class Player {
   getCurrentlyPlaying(callback?: any) {
     this._get("/player")
       .then((res) => {
-        if (callback) callback(res.data);
+        if (callback) callback(res);
         if (res.status == 200) {
-          this.playerData = res.data;
+          if (res.data) this.playerData = res.data;
         }
       })
       .catch((error) => {
@@ -267,7 +288,7 @@ export class Player {
   getUserDevices(callback?: any) {
     this._get("/player/devices")
       .then((res) => {
-        this._update(callback);
+        this.update(callback);
         for (let i = 0; i < res.data.devices.length; i++) {
           if (res.data.devices[i].is_active) {
             this.songHolder.device_id = res.data.devices[i].id;
@@ -306,7 +327,7 @@ export class Player {
     };
     this._put("/player/", body)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
@@ -317,7 +338,7 @@ export class Player {
     let url = "/player/queue/?" + qs.stringify(body);
     this._post(url)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
@@ -328,7 +349,7 @@ export class Player {
     let url = "/player/play";
     this._put(url)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
@@ -339,7 +360,7 @@ export class Player {
     let url = "/player/pause";
     this._put(url)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
@@ -350,7 +371,7 @@ export class Player {
     let url = "/player/next";
     this._post(url)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
@@ -361,7 +382,7 @@ export class Player {
     let url = "/player/previous";
     this._post(url)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
@@ -372,7 +393,7 @@ export class Player {
     let url = "/player/repeat?" + qs.stringify({ state: state });
     this._put(url)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
@@ -383,23 +404,23 @@ export class Player {
     let url = "/player/shuffle?" + qs.stringify({ state: state });
     this._put(url)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
       });
   }
-
   togglePlayback(callback?: any) {
     this.getCurrentlyPlaying((response: any) => {
-      if (response.is_playing === true) this.pause(callback);
-      else this.play(callback);
+      console.log(response.data.is_playing);
+      if (response.data.is_playing === true) this.pause(callback);
+      else if (response.data.is_playing === false) this.play(callback);
     });
   }
 
   toggleRepeat(callback?: any) {
     this.getCurrentlyPlaying((response: any) => {
-      switch (response.repeat_state) {
+      switch (response.data.repeat_state) {
         case "off":
           this.repeat("context", callback);
           break;
@@ -414,7 +435,7 @@ export class Player {
 
   toggleShuffle(callback?: any) {
     this.getCurrentlyPlaying((response: any) => {
-      this.shuffle(!response.shuffle_state, callback);
+      this.shuffle(!response.data.shuffle_state, callback);
     });
   }
 
@@ -422,50 +443,54 @@ export class Player {
     let url = "/player/volume?" + qs.stringify({ volume_percent: value });
     this._put(url)
       .then(() => {
-        this._update(callback);
+        this.update(callback);
       })
       .catch((error) => {
         this._catch(error);
       });
   }
 
-  /**
-   * Starts timer, emits changes
-   * @param delay Time to refresh in ms. Default 1000ms
-   */
-  begin(delay: number = 1000) {
-    this.stop();
-    if (this.getAccessToken() != "") {
-      this.getCurrentlyPlaying((res: any) => {
-        if (res != "") {
-          for (let e of this.eventList) {
-            this.event.emit(e, res);
-          }
-          this.songHolder = parseSpotifyResponse(res);
-        } else {
-          for (let e of this.eventList) {
-            this.event.emit(e, "");
-          }
-        }
-      });
+  /* Commented out because handling an interval in a library was too buggy */
+  //
+  // /**
+  //  * Starts timer, emits changes
+  //  * @param delay Time to refresh in ms. Default 1000ms
+  //  */
+  // begin(delay: number = 1000) {
+  //   this.stop();
+  //   if (this.getAccessToken() != "") {
+  //     this.getCurrentlyPlaying((res: any) => {
+  //       if (res != "") {
+  //         for (let e of this.eventList) {
+  //           this.event.emit(e, res);
+  //         }
+  //         if (res.data)
+  //         this.songHolder = parseSpotifyResponse(res.data);
+  //       } else {
+  //         for (let e of this.eventList) {
+  //           this.event.emit(e, "");
+  //         }
+  //       }
+  //     });
 
-      if (this.timer === null) {
-        console.log(`Updating every ${delay} ms`);
-        setInterval(() => {
-          this._update();
-        }, delay);
-      }
-    } else {
-      console.error("Access token not set!");
-    }
-  }
+  //     if (this.timer === null) {
+  //       console.log(`Updating every ${delay} ms`);
+  //       setInterval(() => {
+  //         this.update();
+  //       }, delay);
+  //     }
+  //   } else {
+  //     console.error("Access token not set!");
+  //   }
+  // }
 
-  /**
-   * Stop timer (and kill program)
-   */
-  stop() {
-    clearInterval(this.timer);
-  }
+  // /**
+  //  * Stop timer (and kill program)
+  //  */
+  // stop() {
+  //   clearInterval(this.timer);
+  //   this.timer = null;
+  // }
 }
 
 function sha256(str: string) {
